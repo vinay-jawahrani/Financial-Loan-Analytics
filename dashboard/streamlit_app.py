@@ -156,7 +156,7 @@ st.markdown("""
 # ===== Database Connection =====
 @st.cache_resource
 def get_engine():
-    db_url = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/loan_analytics")
+    db_url = os.getenv("DATABASE_URL", "postgresql://neondb_owner:npg_rjGsBo7hdqz9@ep-royal-credit-azy6sjo9-pooler.c-3.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require")
     return create_engine(db_url)
 
 # ===== Load Data =====
