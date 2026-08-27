@@ -203,8 +203,10 @@ def load_data():
     engine = get_engine()
     
     with engine.connect() as conn:
+        # Raw data (this is in public schema)
         loans = pd.read_sql("SELECT * FROM stg_loans", conn)
         
+        # dbt models are in public_public schema
         try:
             performance = pd.read_sql("SELECT * FROM public_public.loan_performance", conn)
         except:
@@ -221,7 +223,6 @@ def load_data():
             portfolio = pd.DataFrame()
     
     return loans, performance, risk, portfolio
-
 # ===== Prediction Function =====
 def predict_single(model, features):
     """Predict default probability for a single loan"""
