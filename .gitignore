@@ -1,0 +1,136 @@
+# ============================================
+# PYTHON
+# ============================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+*.log
+*.pid
+
+# ============================================
+# VIRTUAL ENVIRONMENT
+# ============================================
+venv/
+env/
+ENV/
+.env
+.venv
+venv.bak/
+env.bak/
+
+# ============================================
+# DATABASE
+# ============================================
+*.db
+*.sqlite
+*.sqlite3
+*.duckdb
+*.db-journal
+*.sqlite-journal
+
+# ============================================
+# ENVIRONMENT FILES
+# ============================================
+.env
+.env.local
+.env.*.local
+.env.production
+.env.development
+.env.test
+
+# ============================================
+# dbt
+# ============================================
+dbt/target/
+dbt/logs/
+dbt/dbt_packages/
+dbt/.user.yml
+dbt/.dbt/
+dbt/*.log
+dbt/*.sql
+
+# ============================================
+# STREAMLIT
+# ============================================
+.streamlit/
+.streamlit/*.pid
+.streamlit/*.log
+.streamlit/config.toml
+.streamlit/secrets.toml
+
+# ============================================
+# JUPYTER NOTEBOOKS
+# ============================================
+.ipynb_checkpoints/
+*.ipynb
+*.pyc
+*.pynb
+
+# ============================================
+# IDE / EDITOR
+# ============================================
+.vscode/
+.idea/
+*.iml
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ============================================
+# MACHINE LEARNING
+# ============================================
+models/*.pkl
+models/*.joblib
+models/*.h5
+models/*.pt
+models/*.pth
+feature_importance.png
+roc_curve.png
+confusion_matrix.png
+
+# ============================================
+# DATA
+# ============================================
+data/raw/*.csv
+data/raw/*.xlsx
+data/processed/*.csv
+data/processed/*.parquet
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+
+# ============================================
+# LOGS & REPORTS
+# ============================================
+*.log
+logs/
+*.html
+*.xml
+*.json
+coverage/
+htmlcov/
+.pytest_cache/
+
+# ============================================
+# DEPLOYMENT
+# ============================================
+*.pid
+*.lock
+*.tmp
+*.temp
+
+# ============================================
+# OS
+# ============================================
+.DS_Store
+Thumbs.db
+desktop.ini
+*.~

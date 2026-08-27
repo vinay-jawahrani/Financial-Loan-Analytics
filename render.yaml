@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: loan-analytics-dashboard
+    runtime: python
+    repo: https://github.com/vinay-jawahrani/Loan-Analytics
+    plan: free
+    region: singapore
+    buildCommand: |
+      pip install -r requirements.txt
+    startCommand: |
+      streamlit run dashboard/streamlit_app.py --server.port $PORT --server.address 0.0.0.0
+    envVars:
+      - key: DATABASE_URL
+        value: postgresql://username:password@ep-xyz.neon.tech/loan_analytics?sslmode=require
+      - key: PYTHON_VERSION
+        value: 3.12.8
