@@ -10,3 +10,4 @@ SELECT
     ROUND((SUM(CASE WHEN loan_status IN ('Charged Off', 'Late (31-120 days)') THEN 1 ELSE 0 END)::numeric / COUNT(*) * 100), 2) AS overall_default_rate,
     ROUND((SUM(CASE WHEN loan_status = 'Fully Paid' THEN 1 ELSE 0 END)::numeric / COUNT(*) * 100), 2) AS overall_paid_rate
 FROM public.stg_loans
+#
