@@ -185,22 +185,26 @@ def load_data():
 
 @st.cache_resource
 def load_model():
-    """Load trained XGBoost model and imputer."""
-    import os
-    import joblib
-    
+    """
+    Load trained XGBoost model and imputer.
+    Tries multiple paths to find the model.
+    """
     # Try multiple possible paths
     possible_paths = [
+        # Relative paths
         os.path.join(os.path.dirname(__file__), '..', 'models', 'model.pkl'),
         os.path.join(os.getcwd(), 'models', 'model.pkl'),
         os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'models', 'model.pkl'),
         'models/model.pkl',
+        # Absolute paths (update these if needed)
+        r'C:\Desktop\azgar\Git_Projects\Financial Loan Performance Analysis\models\model.pkl',
     ]
     
     model = None
     imputer = None
     model_path = None
     
+    # Find existing model
     for path in possible_paths:
         if os.path.exists(path):
             model_path = path
@@ -211,14 +215,32 @@ def load_model():
         return None, None
     
     try:
+        # Load model
         model = joblib.load(model_path)
+        print(f"✅ Model loaded from: {model_path}")
+        
         # Load imputer
         imputer_path = model_path.replace('model.pkl', 'imputer.pkl')
         if os.path.exists(imputer_path):
             imputer = joblib.load(imputer_path)
+            print(f"✅ Imputer loaded from: {imputer_path}")
+        else:
+            print("⚠️ Imputer not found. Proceeding without it.")
+        
+        # Load feature names
+        feature_path = model_path.replace('model.pkl', 'feature_names.txt')
+        if os.path.exists(feature_path):
+            with open(feature_path, 'r') as f:
+                feature_names = [line.strip() for line in f.readlines()]
+            print(f"✅ Feature names loaded: {len(feature_names)} features")
+        else:
+            print("⚠️ Feature names not found.")
+        
         return model, imputer
+        
     except Exception as e:
-        st.error(f"Error loading model: {e}")
+        st.error(f"❌ Error loading model: {e}")
+        print(f"❌ Error loading model: {e}")
         return None, None
 
 # ===== Prediction Functions =====
