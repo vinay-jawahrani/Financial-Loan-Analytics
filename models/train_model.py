@@ -1,7 +1,3 @@
-"""
-train_model.py - Train XGBoost model to predict loan default
-"""
-
 import pandas as pd
 import numpy as np
 from sqlalchemy import create_engine
@@ -19,7 +15,7 @@ warnings.filterwarnings('ignore')
 load_dotenv()
 
 def get_data():
-    db_url = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/loan_analytics")
+    db_url = os.getenv("DATABASE_URL", "postgresql://neondb_owner:npg_rjGsBo7hdqz9@ep-royal-credit-azy6sjo9-pooler.c-3.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require")
     engine = create_engine(db_url)
     
     query = """
@@ -106,6 +102,7 @@ def train_model(df):
     print("🏦 Training Loan Default Prediction Model")
     print("="*60)
     
+    # Separate features and target
     X = df.drop(['is_default'], axis=1)
     y = df['is_default']
     
@@ -113,26 +110,53 @@ def train_model(df):
     print(f"  Good Loans: {len(y[y==0]):,} ({len(y[y==0])/len(y)*100:.1f}%)")
     print(f"  Defaults: {len(y[y==1]):,} ({len(y[y==1])/len(y)*100:.1f}%)")
     
+    # Train-test split
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, random_state=42, stratify=y
     )
     
-    # Apply SMOTE to handle class imbalance
+    # ===== HANDLE MISSING VALUES =====
+    print("\n🔄 Handling missing values...")
+    
+    # Drop columns with >50% missing
+    threshold = 0.5
+    missing_ratio = X_train.isnull().mean()
+    cols_to_drop = missing_ratio[missing_ratio > threshold].index.tolist()
+    X_train = X_train.drop(cols_to_drop, axis=1)
+    X_test = X_test.drop(cols_to_drop, axis=1)
+    print(f"  Dropped {len(cols_to_drop)} columns with >50% missing")
+    
+    # Impute remaining missing with median
+    from sklearn.impute import SimpleImputer
+    imputer = SimpleImputer(strategy='median')
+    X_train_imputed = imputer.fit_transform(X_train)
+    X_test_imputed = imputer.transform(X_test)
+    
+    # Convert back to DataFrame (for feature names)
+    X_train_imputed = pd.DataFrame(X_train_imputed, columns=X_train.columns)
+    X_test_imputed = pd.DataFrame(X_test_imputed, columns=X_test.columns)
+    
+    print(f"  Imputed missing values with median")
+    
+    # ===== SMOTE =====
     print("\n🔄 Applying SMOTE for class imbalance...")
     smote = SMOTE(random_state=42, sampling_strategy=0.3)
-    X_train_resampled, y_train_resampled = smote.fit_resample(X_train, y_train)
+    X_train_resampled, y_train_resampled = smote.fit_resample(X_train_imputed, y_train)
     print(f"  After SMOTE: {len(X_train_resampled):,} samples")
     
     print(f"\n📋 Data Split:")
     print(f"  Training: {len(X_train_resampled):,} samples")
     print(f"  Testing: {len(X_test):,} samples")
     
+    # ===== TRAIN MODEL =====
     print("\n🤖 Training XGBoost Model...")
+    scale_pos_weight = len(y_train[y_train==0]) / len(y_train[y_train==1])
+    
     model = xgb.XGBClassifier(
         n_estimators=300,
         max_depth=4,
         learning_rate=0.05,
-        scale_pos_weight=len(y_train[y_train==0]) / len(y_train[y_train==1]),
+        scale_pos_weight=scale_pos_weight,
         subsample=0.7,
         colsample_bytree=0.7,
         random_state=42,
@@ -141,11 +165,12 @@ def train_model(df):
     
     model.fit(
         X_train_resampled, y_train_resampled,
-        eval_set=[(X_test, y_test)],
+        eval_set=[(X_test_imputed, y_test)],
         verbose=False
     )
     
-    y_pred_proba = model.predict_proba(X_test)[:, 1]
+    # ===== EVALUATE =====
+    y_pred_proba = model.predict_proba(X_test_imputed)[:, 1]
     y_pred = (y_pred_proba > 0.5).astype(int)
     
     print("\n📊 Model Performance:")
@@ -155,20 +180,23 @@ def train_model(df):
     auc = roc_auc_score(y_test, y_pred_proba)
     print(f"\n✅ ROC-AUC Score: {auc:.4f}")
     
+    # ===== FEATURE IMPORTANCE =====
     feature_importance = pd.DataFrame({
-        'feature': X.columns,
+        'feature': X_train.columns,
         'importance': model.feature_importances_
     }).sort_values('importance', ascending=False)
     
     print("\n📈 Top 10 Features:")
     print(feature_importance.head(10).to_string(index=False))
     
+    # ===== SAVE MODEL =====
     model_path = os.path.join(os.path.dirname(__file__), 'model.pkl')
     joblib.dump(model, model_path)
     print(f"\n💾 Model saved to {model_path}")
     
+    # Save feature names
     with open(os.path.join(os.path.dirname(__file__), 'feature_names.txt'), 'w') as f:
-        for col in X.columns:
+        for col in X_train.columns:
             f.write(col + '\n')
     
     return model
