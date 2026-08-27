@@ -19,7 +19,3 @@ clean-targets:
 models:
   loan_analytics:
     +schema: public
-    staging:
-      +schema: public
-    marts:
-      +schema: public

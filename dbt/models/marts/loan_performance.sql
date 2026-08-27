@@ -1,6 +1,4 @@
 -- loan_performance.sql
--- Loan performance summary
-
 SELECT
     grade,
     loan_status,
@@ -12,6 +10,6 @@ SELECT
     ROUND(SUM(paid_total)::numeric, 2) AS total_paid,
     ROUND(SUM(loan_amount)::numeric, 2) AS total_loans_funded,
     ROUND((SUM(paid_total) / NULLIF(SUM(loan_amount), 0) * 100)::numeric, 2) AS recovery_rate
-FROM {{ source('staging', 'stg_loans') }}
+FROM public.stg_loans
 GROUP BY grade, loan_status
 ORDER BY grade, loan_status

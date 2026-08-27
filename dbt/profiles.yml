@@ -10,6 +10,6 @@ loan_analytics:
       schema: public
       threads: 4
       # Remove sslmode for local development
-      # sslmode: require
+      sslmode: require
   target: dev
-  #postgresql://neondb_owner:npg_rjGsBo7hdqz9@ep-royal-credit-azy6sjo9-pooler.c-3.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+  

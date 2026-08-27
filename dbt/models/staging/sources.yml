@@ -1,8 +1,0 @@
-version: 2
-
-sources:
-  - name: staging
-    schema: public
-    tables:
-      - name: stg_loans
-        description: "Raw loan data"

@@ -55,4 +55,4 @@ SELECT
     paid_principal,
     paid_interest,
     paid_late_fees
-FROM {{ source('staging', 'stg_loans') }}
+FROM public.stg_loans
