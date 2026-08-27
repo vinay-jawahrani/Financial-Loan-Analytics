@@ -12,7 +12,7 @@ load_dotenv()
 
 # ===== FIXED: Correct path =====
 RAW_PATH = Path("data/raw/loans_full_schema.csv")
-DB_URL = os.getenv("DATABASE_URL", "postgresql://postgres:password@localhost:5432/loan_analytics")
+DB_URL = os.getenv("DATABASE_URL", "postgresql://neondb_owner:npg_rjGsBo7hdqz9@ep-royal-credit-azy6sjo9-pooler.c-3.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require")
 
 def load_data():
     print("🚀 Loading Full Loan Dataset...")
