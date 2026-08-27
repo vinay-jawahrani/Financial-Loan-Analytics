@@ -14,6 +14,25 @@ import joblib
 from dotenv import load_dotenv
 from datetime import datetime
 
+# ===== DEBUG: Check if model loads =====
+print("="*60)
+print("🔍 DEBUG: Checking model...")
+print(f"  Current directory: {os.getcwd()}")
+model_path = os.path.join(os.path.dirname(__file__), '..', 'models', 'model.pkl')
+print(f"  Model path: {model_path}")
+print(f"  Model exists: {os.path.exists(model_path)}")
+
+if os.path.exists(model_path):
+    try:
+        import joblib
+        test_model = joblib.load(model_path)
+        print(f"  ✅ Model loaded successfully! Type: {type(test_model)}")
+    except Exception as e:
+        print(f"  ❌ Error loading model: {e}")
+else:
+    print("  ❌ Model file not found!")
+print("="*60)
+
 # Load environment variables
 load_dotenv()
 
