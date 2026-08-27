@@ -4,8 +4,16 @@ default_prediction.py - Simplified interface for loan default prediction
 
 import pandas as pd
 import numpy as np
-from .predict import load_model, predict_single, predict_batch
+import joblib
 import os
+import sys
+
+# Add parent directory to path if running as script
+if __name__ == "__main__" and __package__ is None:
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Now import from models
+from models.predict import load_model, predict_single, predict_batch
 
 # Load model once at module import
 _model, _imputer = load_model()
@@ -82,7 +90,7 @@ def get_recommendation(proba):
         return "Decline or require collateral"
 
 if __name__ == "__main__":
-    # Test
+    # Test prediction
     sample = {
         'loan_amount': 15000,
         'interest_rate': 12.5,

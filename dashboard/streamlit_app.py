@@ -182,18 +182,44 @@ def load_data():
     return loans, performance, risk, portfolio
 
 # ===== Model Loader =====
+
 @st.cache_resource
 def load_model():
+    """Load trained XGBoost model and imputer."""
+    import os
+    import joblib
+    
+    # Try multiple possible paths
+    possible_paths = [
+        os.path.join(os.path.dirname(__file__), '..', 'models', 'model.pkl'),
+        os.path.join(os.getcwd(), 'models', 'model.pkl'),
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'models', 'model.pkl'),
+        'models/model.pkl',
+    ]
+    
+    model = None
+    imputer = None
+    model_path = None
+    
+    for path in possible_paths:
+        if os.path.exists(path):
+            model_path = path
+            break
+    
+    if model_path is None:
+        st.warning("⚠️ Model not found. Please train the model first: `python models/train_model.py`")
+        return None, None
+    
     try:
-        model_path = os.path.join(os.path.dirname(__file__), '..', 'models', 'model.pkl')
-        if os.path.exists(model_path):
-            model = joblib.load(model_path)
-            return model
-        else:
-            return None
+        model = joblib.load(model_path)
+        # Load imputer
+        imputer_path = model_path.replace('model.pkl', 'imputer.pkl')
+        if os.path.exists(imputer_path):
+            imputer = joblib.load(imputer_path)
+        return model, imputer
     except Exception as e:
         st.error(f"Error loading model: {e}")
-        return None
+        return None, None
 
 # ===== Prediction Functions =====
 def get_risk_level(proba):
@@ -206,7 +232,7 @@ def get_risk_level(proba):
     else:
         return 'Very High Risk 🔴', 'risk-critical'
 
-def predict_single(model, features):
+def predict_single(model, imputer, features):
     """Predict default probability for a single loan"""
     try:
         df = pd.DataFrame([features])
@@ -236,7 +262,7 @@ def predict_single(model, features):
                 df[col + '_encoded'] = le.fit_transform(df[col].astype(str))
                 df = df.drop(col, axis=1)
         
-        # Get feature names from training
+        # Get feature names
         feature_path = os.path.join(os.path.dirname(__file__), '..', 'models', 'feature_names.txt')
         if os.path.exists(feature_path):
             with open(feature_path, 'r') as f:
@@ -249,7 +275,13 @@ def predict_single(model, features):
             if col not in df.columns:
                 df[col] = 0
         
-        proba = model.predict_proba(df[feature_names])[0, 1]
+        # Impute if needed
+        if imputer is not None:
+            df_imputed = imputer.transform(df[feature_names])
+        else:
+            df_imputed = df[feature_names].fillna(0).values
+        
+        proba = model.predict_proba(df_imputed)[0, 1]
         return proba
     except Exception as e:
         st.error(f"Prediction error: {e}")
@@ -266,7 +298,7 @@ def main():
         st.stop()
     
     # Load model
-    model = load_model()
+    model, imputer = load_model()
     model_available = model is not None
     
     # ===== Sidebar Filters =====
@@ -524,7 +556,7 @@ def main():
                     'public_record_bankrupt': 0
                 }
                 try:
-                    proba = predict_single(model, features)
+                    proba = predict_single(model, imputer, features)
                     if proba is not None:
                         risk_level, risk_class = get_risk_level(proba)
                         st.markdown("---")
