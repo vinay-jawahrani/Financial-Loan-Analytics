@@ -182,7 +182,6 @@ def load_data():
     return loans, performance, risk, portfolio
 
 # ===== Model Loader =====
-
 @st.cache_resource
 def load_model():
     """
@@ -237,6 +236,11 @@ def load_model():
             print("⚠️ Feature names not found.")
         
         return model, imputer
+        
+    except Exception as e:
+        st.error(f"❌ Error loading model: {e}")
+        print(f"❌ Error loading model: {e}")
+        return None, None
         
     except Exception as e:
         st.error(f"❌ Error loading model: {e}")
