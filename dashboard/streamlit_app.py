@@ -161,7 +161,7 @@ def get_engine():
     return create_engine(db_url)
 
 # ===== Load Data =====
-# ===== Load Data =====
+
 @st.cache_data(ttl=300)
 def load_data():
     """Load data from PostgreSQL."""
@@ -222,7 +222,6 @@ def load_model():
     try:
         # Load model
         model = joblib.load(model_path)
-        print(f"✅ Model loaded from: {model_path}")
         
         # Load imputer
         imputer_path = model_path.replace('model.pkl', 'imputer.pkl')
