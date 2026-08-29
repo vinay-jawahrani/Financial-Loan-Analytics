@@ -14,6 +14,7 @@ import joblib
 from dotenv import load_dotenv
 from datetime import datetime
 import warnings
+from sklearn.preprocessing import LabelEncoder
 warnings.filterwarnings('ignore')
 
 # ===== Import Page Modules =====
@@ -160,25 +161,30 @@ def get_engine():
     return create_engine(db_url)
 
 # ===== Load Data =====
+# ===== Load Data =====
 @st.cache_data(ttl=300)
 def load_data():
+    """Load data from PostgreSQL."""
     engine = get_engine()
     with engine.connect() as conn:
         loans = pd.read_sql("SELECT * FROM stg_loans", conn)
         
-        # dbt models in public_public schema
+        # Try different schemas for dbt models
         try:
             performance = pd.read_sql("SELECT * FROM public_public.loan_performance", conn)
         except:
             performance = pd.DataFrame()
+        
         try:
             risk = pd.read_sql("SELECT * FROM public_public.risk_analysis", conn)
         except:
             risk = pd.DataFrame()
+        
         try:
             portfolio = pd.read_sql("SELECT * FROM public_public.portfolio_summary", conn)
         except:
             portfolio = pd.DataFrame()
+    
     return loans, performance, risk, portfolio
 
 # ===== Model Loader =====
@@ -248,7 +254,9 @@ def load_model():
         return None, None
 
 # ===== Prediction Functions =====
+
 def get_risk_level(proba):
+    """Get risk level from probability."""
     if proba < 0.10:
         return 'Low Risk 🟢', 'risk-low'
     elif proba < 0.25:
@@ -259,27 +267,42 @@ def get_risk_level(proba):
         return 'Very High Risk 🔴', 'risk-critical'
 
 def predict_single(model, imputer, features):
-    """Predict default probability for a single loan"""
+    """
+    Predict default probability for a single loan.
+    
+    Args:
+        model: Trained XGBoost model
+        imputer: Fitted SimpleImputer (can be None)
+        features: Dict with loan features
+    
+    Returns:
+        float: Default probability (0-1)
+    """
     try:
+        # Create DataFrame
         df = pd.DataFrame([features])
         
-        # Feature engineering (must match training)
+        # ===== Feature Engineering (must match training) =====
+        # Credit utilization
         df['credit_utilization'] = df['total_credit_utilized'] / df['total_credit_limit'].replace(0, np.nan)
         df['credit_utilization'] = df['credit_utilization'].fillna(0)
         
+        # Income to loan ratio
         df['income_to_loan'] = df['annual_income'] / df['loan_amount'].replace(0, np.nan)
         df['income_to_loan'] = df['income_to_loan'].fillna(0)
         
+        # Delinquency ratio
         df['delinquency_ratio'] = df['delinq_2y'] / df['total_credit_lines'].replace(0, np.nan)
         df['delinquency_ratio'] = df['delinquency_ratio'].fillna(0)
         
+        # Installment to income ratio
         df['installment_to_income'] = df['installment'] / df['annual_income'].replace(0, np.nan)
         df['installment_to_income'] = df['installment_to_income'].fillna(0)
         
+        # Months since 90-day late
         df['months_since_90d_late'] = df['months_since_90d_late'].fillna(999)
         
-        # Encode categoricals
-        from sklearn.preprocessing import LabelEncoder
+        # ===== Encode Categoricals =====
         categorical_cols = ['grade', 'sub_grade', 'homeownership', 'state', 'loan_purpose', 'application_type']
         for col in categorical_cols:
             if col in df.columns:
@@ -288,44 +311,54 @@ def predict_single(model, imputer, features):
                 df[col + '_encoded'] = le.fit_transform(df[col].astype(str))
                 df = df.drop(col, axis=1)
         
-        # Get feature names
+        # ===== Get Feature Names =====
         feature_path = os.path.join(os.path.dirname(__file__), '..', 'models', 'feature_names.txt')
         if os.path.exists(feature_path):
             with open(feature_path, 'r') as f:
                 feature_names = [line.strip() for line in f.readlines()]
         else:
+            # Fallback: use all columns except is_default
             feature_names = [col for col in df.columns if col not in ['is_default']]
         
-        # Ensure all features exist
+        # ===== Ensure All Features Exist =====
         for col in feature_names:
             if col not in df.columns:
                 df[col] = 0
         
-        # Impute if needed
+        # ===== Impute Missing Values =====
         if imputer is not None:
             df_imputed = imputer.transform(df[feature_names])
         else:
             df_imputed = df[feature_names].fillna(0).values
         
+        # ===== Predict =====
         proba = model.predict_proba(df_imputed)[0, 1]
         return proba
+        
     except Exception as e:
-        st.error(f"Prediction error: {e}")
+        print(f"❌ Prediction error: {e}")
         return None
 
 # ===== Main App =====
 def main():
-    # Load data
+    # ===== Load Data =====
     with st.spinner("Loading loan data..."):
         loans, performance, risk, portfolio = load_data()
-    
+
     if loans.empty:
         st.error("❌ No data found! Please load data first.")
         st.stop()
-    
-    # Load model
-    model, imputer = load_model()
-    model_available = model is not None
+
+# ===== Load Model =====
+    with st.spinner("Loading ML model..."):
+        model, imputer = load_model()
+        model_available = model is not None
+
+# Debug: Show model status
+    if model_available:
+        st.sidebar.success("✅ Model loaded successfully!")
+    else:
+        st.sidebar.warning("⚠️ Model not loaded. Train it first.")
     
     # ===== Sidebar Filters =====
     st.sidebar.title("🔍 Filters")
